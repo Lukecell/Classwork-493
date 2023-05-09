@@ -15,10 +15,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 from astropy import units as u
 
-data_path = Path(os.getcwd() + '/Documents\ARCSAT_OBSERVATIONS')
-calibrated_data = Path(os.getcwd()+ '/Documents\ARCSAT_OBSERVATIONS/Calibrated')
+import sys
+
+data_path_name = sys.argv[1]
+calibrated_path_name = sys.argv[2]
+
+data_path = Path(data_path_name)
+calibrated_data = Path(calibrated_path_name)
 calibrated_data.mkdir(exist_ok=True)
 
+print("data path: " + data_path_name)
+print("calibrated path: " + calibrated_path_name)
 
 files = ccdp.ImageFileCollection(data_path)
 
@@ -120,7 +127,7 @@ for i in range(len(combed_filters)):
     combined_flats.append(combined_flatser)
     combined_flats[i].meta['combined'] = True
 
-    combined_flats[i].write(os.getcwd() + '/Documents\ARCSAT_OBSERVATIONS/Calibrated/combined_flats'+ combed_filters[i] +'.fit', overwrite = True)
+    combined_flats[i].write( calibrated_path_name + '/combined_flats'+ combed_filters[i] +'.fit', overwrite = True)
 
 
 
@@ -149,12 +156,12 @@ for i in range(len(z_science)):
 m13_g = g_science[0]
 
 m13_g = ccdp.ccd_process(m13_g, dark_frame = combined_darks, dark_exposure = 1800*u.s, data_exposure = 120*u.s, master_flat = combined_flats[0])
-m13_g.write(os.getcwd() + '/Documents\ARCSAT_OBSERVATIONS/Calibrated/M13_g.fit', overwrite = True)
+m13_g.write( calibrated_path_name + '/M13_g.fit', overwrite = True)
 
 NGC_4726_g = g_science[1]
 
 NGC_4726_g = ccdp.ccd_process(NGC_4726_g, dark_frame = combined_darks, dark_exposure = 1800*u.s, data_exposure = 900*u.s, master_flat = combined_flats[0])
-NGC_4726_g.write(os.getcwd() + '/Documents\ARCSAT_OBSERVATIONS/Calibrated/NGC_4726_g.fit', overwrite = True)
+NGC_4726_g.write(calibrated_path_name + '/NGC_4726_g.fit', overwrite = True)
 
 plt.imshow(m13_g)
 
