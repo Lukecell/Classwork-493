@@ -17,6 +17,10 @@ from astropy import units as u
 
 import sys
 
+sigma_low_threshold = 2
+sigma_high_threshold = 3
+
+
 data_path_name = sys.argv[1]
 calibrated_path_name = sys.argv[2]
 
@@ -33,6 +37,21 @@ science_images = files.files_filtered(imagetyp = 'Light Frame', include_path = T
 science_size = np.shape(science_images)
 # overscan = '[:2048, :]' #PLACEHOLDER OVERSCAN
 
+raw_bias = files.files_filtered(imagetyp = 'BIAS', include_path = True)
+bias_size = np.shape(raw_bias)
+read_bias = [0] * bias_size[0]
+for i in range(bias_size[0]):
+    read_bias[i] = CCDData.read(raw_bias[i], unit = 'adu')
+
+master_bias = ccdp.combine(read_bias,
+                              method='average',
+                              sigma_clip=True, sigma_clip_low_thresh = sigma_low_threshold, sigma_clip_high_thresh = sigma_high_threshold,
+                              sigma_clip_func=np.ma.median, sigma_clip_dev_func=mad_std,
+                              mem_limit=350e8
+                            )
+master_bias.meta['combined'] = True
+
+master_bias.write(calibrated_data / 'master_bias.fit', overwrite = True)
 
 raw_darks = files.files_filtered(imagetyp = 'Dark Frame', include_path = True)
 dark_size = np.shape(raw_darks)
@@ -128,6 +147,7 @@ for i in range(len(combed_filters)):
     combined_flats[i].meta['combined'] = True
 
     combined_flats[i].write( calibrated_path_name + '/combined_flats'+ combed_filters[i] +'.fit', overwrite = True)
+    print(combed_filters[i])
 
 
 
@@ -155,12 +175,12 @@ for i in range(len(z_science)):
 
 m13_g = g_science[0]
 
-m13_g = ccdp.ccd_process(m13_g, dark_frame = combined_darks, dark_exposure = 1800*u.s, data_exposure = 120*u.s, master_flat = combined_flats[0])
+m13_g = ccdp.ccd_process(m13_g, dark_frame = combined_darks, dark_exposure = 1800*u.s, master_bias=master_bias, data_exposure = 120*u.s, dark_scale=True, master_flat = combined_flats[0])
 m13_g.write( calibrated_path_name + '/M13_g.fit', overwrite = True)
 
 NGC_4726_g = g_science[1]
 
-NGC_4726_g = ccdp.ccd_process(NGC_4726_g, dark_frame = combined_darks, dark_exposure = 1800*u.s, data_exposure = 900*u.s, master_flat = combined_flats[0])
+NGC_4726_g = ccdp.ccd_process(NGC_4726_g, dark_frame = combined_darks, dark_exposure = 1800*u.s, master_bias=master_bias, data_exposure = 900*u.s, dark_scale=True, master_flat = combined_flats[0])
 NGC_4726_g.write(calibrated_path_name + '/NGC_4726_g.fit', overwrite = True)
 
 plt.imshow(m13_g)
@@ -189,14 +209,14 @@ plt.imshow(m13_g)
     
 #     calibrated_biases[i] = trimmer
 
-# combined_bias = ccdp.combine(calibrated_biases,
+# master_bias = ccdp.combine(calibrated_biases,
 #                               method='average',
 #                               sigma_clip=True, sigma_clip_low_thresh=5, sigma_clip_high_thresh=5,
 #                               sigma_clip_func=np.ma.median, sigma_clip_dev_func=mad_std,
 #                               mem_limit=350e6
 #                             )
 
-# combined_bias.meta['combined'] = True
+# master_bias.meta['combined'] = True
 
-# combined_bias.write(calibrated_data / 'combined_bias.fit', overwrite = True)
+# master_bias.write(calibrated_data / 'master_bias.fit', overwrite = True)
 
